@@ -1,0 +1,29 @@
+{
+  "conversationId": "opencode-router-feat-migrate-from-opencode-monorepo-zfu7gk",
+  "projectPath": "/Users/oliverjaegle/projects/privat/opencode-router",
+  "epicId": "opencode-router-1",
+  "phaseTasks": [
+    {
+      "phaseId": "explore",
+      "phaseName": "Explore",
+      "taskId": "opencode-router-1.1"
+    },
+    {
+      "phaseId": "plan",
+      "phaseName": "Plan",
+      "taskId": "opencode-router-1.2"
+    },
+    {
+      "phaseId": "code",
+      "phaseName": "Code",
+      "taskId": "opencode-router-1.3"
+    },
+    {
+      "phaseId": "commit",
+      "phaseName": "Commit",
+      "taskId": "opencode-router-1.4"
+    }
+  ],
+  "createdAt": "2026-05-27T16:44:33.526Z",
+  "updatedAt": "2026-05-27T16:44:33.526Z"
+}

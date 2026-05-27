@@ -1,0 +1,6 @@
+@layer components {
+  [data-component="spinner"] {
+    animation: spin 1s linear infinite;
+    color: var(--color-primary);
+  }
+}

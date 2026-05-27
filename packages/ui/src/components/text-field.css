@@ -1,0 +1,44 @@
+@layer components {
+  [data-component="text-field"] {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  [data-slot="text-field-label"] {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+  }
+
+  [data-slot="text-field-input-wrapper"] {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  [data-slot="text-field-input"] {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  [data-slot="text-field-input"]:focus {
+    border-color: var(--color-primary);
+  }
+
+  [data-slot="text-field-description"] {
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+  }
+
+  [data-slot="text-field-error"] {
+    font-size: 0.75rem;
+    color: var(--color-danger);
+  }
+}

@@ -1,0 +1,50 @@
+@layer components {
+  [data-component="button"] {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+    border: 1px solid transparent;
+    background: none;
+    color: inherit;
+  }
+
+  [data-component="button"][data-variant="primary"] {
+    background-color: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+  }
+  [data-component="button"][data-variant="primary"]:hover {
+    background-color: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
+  }
+
+  [data-component="button"][data-variant="secondary"] {
+    background-color: var(--color-bg-secondary);
+    border-color: var(--color-border);
+  }
+  [data-component="button"][data-variant="secondary"]:hover {
+    background-color: var(--color-border);
+  }
+
+  [data-component="button"][data-variant="ghost"] {
+    border-color: transparent;
+  }
+  [data-component="button"][data-variant="ghost"]:hover {
+    background-color: var(--color-bg-secondary);
+  }
+
+  [data-component="button"][data-size="small"] {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  [data-component="button"][data-size="large"] {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+  }
+}
