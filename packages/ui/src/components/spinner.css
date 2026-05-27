@@ -1,6 +1,8 @@
 @layer components {
   [data-component="spinner"] {
-    animation: spin 1s linear infinite;
-    color: var(--color-primary);
+    color: inherit;
+    flex-shrink: 0;
+    width: 18px;
+    aspect-ratio: 1;
   }
 }

@@ -1,0 +1,77 @@
+@layer utilities {
+  :root {
+    interpolate-size: allow-keywords;
+  }
+
+  .no-scrollbar {
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    & {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .text-12-regular {
+    font-family: var(--font-family-sans);
+    font-size: var(--font-size-small);
+    font-style: normal;
+    font-weight: var(--font-weight-regular);
+    line-height: var(--line-height-large);
+    letter-spacing: var(--letter-spacing-normal);
+  }
+
+  .text-12-medium {
+    font-family: var(--font-family-sans);
+    font-size: var(--font-size-small);
+    font-style: normal;
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-large);
+    letter-spacing: var(--letter-spacing-normal);
+  }
+
+  .text-14-regular {
+    font-family: var(--font-family-sans);
+    font-size: var(--font-size-base);
+    font-style: normal;
+    font-weight: var(--font-weight-regular);
+    line-height: var(--line-height-x-large);
+    letter-spacing: var(--letter-spacing-normal);
+  }
+
+  .text-14-medium {
+    font-family: var(--font-family-sans);
+    font-size: var(--font-size-base);
+    font-style: normal;
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-large);
+    letter-spacing: var(--letter-spacing-normal);
+  }
+
+  .text-16-medium {
+    font-family: var(--font-family-sans);
+    font-size: var(--font-size-large);
+    font-style: normal;
+    font-weight: var(--font-weight-medium);
+    line-height: var(--line-height-x-large);
+    letter-spacing: var(--letter-spacing-tight);
+  }
+
+  /* Note: text-18-medium, text-13-*, text-11-*, text-10-* are intentionally NOT defined
+     so they fall back to body font-size (13px via text-12-regular on <body>),
+     matching the original opencode-router-app behavior. */
+
+}

@@ -202,6 +202,20 @@ A thorough review of the migration was performed. Overall the migration is solid
 
 12. **`.env.local` and `.env.local.example` bun TLS comment removed** — Updated to remove "Bun's TLS stack" reference. Also updated the example's header to document the mock quickstart workflow.
 
+**UI theme / visual parity fixes (verified via Playwright DOM comparison):**
+
+13. **`packages/ui` CSS design system was wrong** — The custom `@opencode-ai/ui` package was created with a generic design system (`--color-bg`, `--color-text`, `--color-primary`, etc.) instead of the real opencode OC-2 tokens (`--background-base`, `--text-base`, `--text-strong`, `--button-primary-base`, etc.). The app's component CSS and inline styles all use OC-2 tokens, so nothing was styled. Fixed by copying `colors.css` (palette) and `theme.css` (semantic tokens with light/dark variants) from the original opencode `packages/ui/src/styles/`.
+
+14. **Component CSS files used wrong variable names** — All 5 component CSS files (`button.css`, `dialog.css`, `text-field.css`, `spinner.css`, `icon.css`) used `--color-primary`, `--color-border`, etc. Rewrote all 5 to use the real OC-2 tokens matching the original opencode component CSS exactly.
+
+15. **`styles/index.css` missing `colors.css` import** — Added `@import "./colors.css" layer(theme)` before `theme.css` (matching original import order). Also added `@import "./utilities.css"` for typography classes.
+
+16. **`styles/tailwind/index.css` missing `@theme` block** — The Tailwind config lacked the `@theme { --*: initial; ... }` block that maps opencode design tokens to Tailwind theme variables (`--font-sans`, `--text-sm`, `--text-base`, shadow variables, etc.). Without this, Tailwind uses its own defaults (16px base font-size) instead of the OC-2 values.
+
+17. **Typography utility classes missing** — The `text-12-regular`, `text-12-medium`, `text-14-medium`, `text-14-regular`, `text-16-medium` classes are defined in the original opencode `styles/utilities.css` but were absent from our package. Added `styles/utilities.css` with these classes. Classes NOT defined in the original (`text-18-medium`, `text-13-*`, `text-11-*`, `text-10-*`) are intentionally left undefined so they inherit from body (13px via `text-12-regular` on `<body>`), exactly matching old app behavior.
+
+18. **`styles/base.css` replaced with full opencode version** — Our original stub had only box-model reset + body rule. Replaced with the full opencode `base.css` which includes the complete Tailwind-style reset (iOS zoom prevention, form element normalization, etc.).
+
 **Confirmed clean (no changes needed):**
 - All `bun:test` → `vitest`, `mock()` → `vi.fn()`, `mock.module()` → `vi.doMock()` conversions: ✅ correct
 - `import.meta.dir` → `import.meta.dirname` in config.test.ts: ✅ correct  
