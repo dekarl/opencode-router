@@ -14,6 +14,9 @@ name: Build and publish opencode-router image
 #       --field routerImage=ghcr.io/mrsimpson/opencode-router:<tag>
 #   Option C (Renovate): Renovate tracks GHCR image tags and opens PRs against
 #     homelab-apps when new tags appear.
+#
+# Note: uses plain `docker build` + `docker push` (not buildx) to avoid
+# GHCR cross-owner blob mount 403 errors that occur with buildx on new packages.
 
 on:
   push:
@@ -31,6 +34,7 @@ permissions:
 
 env:
   IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/opencode-router
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
@@ -41,15 +45,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
       - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io \
+            -u ${{ github.repository_owner }} --password-stdin
 
       - name: Get version from package.json
         id: version
@@ -61,21 +60,18 @@ jobs:
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "image=${IMAGE_NAME}:${TAG}" >> $GITHUB_OUTPUT
 
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          push: true
-          platforms: linux/amd64
-          provenance: false
-          tags: |
-            ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }}
-            ${{ env.IMAGE_NAME }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Build
+        run: |
+          docker build \
+            -t ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }} \
+            -t ${{ env.IMAGE_NAME }}:latest \
+            .
 
-      - name: Output image tag
-        run: echo "Built and pushed ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }}"
+      - name: Push
+        run: |
+          docker push ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }}
+          docker push ${{ env.IMAGE_NAME }}:latest
+          echo "Built and pushed ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }}"
 
   trigger-deploy:
     # Dispatches the deploy-opencode-router workflow in homelab-apps with the new image tag.
