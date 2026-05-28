@@ -1,5 +1,20 @@
 name: Build and publish opencode-router image
 
+# Builds and pushes the opencode-router Docker image to GHCR on every push to main.
+#
+# Image: ghcr.io/<owner>/opencode-router:<version>-main.<sha7>  and  :latest
+#
+# After a successful build the image tag can be deployed to the homelab by:
+#   Option A (automatic): Configure HOMELAB_APPS_PAT secret (fine-grained PAT with
+#     "Actions: write" permission on mrsimpson/homelab-apps). The "trigger-deploy" job
+#     then dispatches the deploy-opencode-router workflow in homelab-apps automatically.
+#   Option B (manual): Run:
+#     gh workflow run deploy-opencode-router.yml \
+#       --repo mrsimpson/homelab-apps \
+#       --field routerImage=ghcr.io/mrsimpson/opencode-router:<tag>
+#   Option C (Renovate): Renovate tracks GHCR image tags and opens PRs against
+#     homelab-apps when new tags appear.
+
 on:
   push:
     branches:
@@ -22,6 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.version.outputs.tag }}
+      image: ${{ steps.version.outputs.image }}
     steps:
       - uses: actions/checkout@v4
 
@@ -61,27 +77,26 @@ jobs:
       - name: Output image tag
         run: echo "Built and pushed ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }}"
 
-  update-homelab:
+  trigger-deploy:
+    # Dispatches the deploy-opencode-router workflow in homelab-apps with the new image tag.
+    # Requires HOMELAB_APPS_PAT secret: a fine-grained PAT with "Actions: write" on
+    # mrsimpson/homelab-apps. If the secret is absent the step exits 0 gracefully.
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
-      - name: Checkout homelab-apps
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.repository_owner }}/homelab-apps
-          token: ${{ secrets.HOMELAB_APPS_PAT || secrets.GITHUB_TOKEN }}
-          path: homelab-apps
-
-      - name: Update Pulumi stack config
+      - name: Trigger homelab-apps deploy
+        env:
+          GH_TOKEN: ${{ secrets.HOMELAB_APPS_PAT }}
+          IMAGE: ${{ needs.build.outputs.image }}
+          OWNER: ${{ github.repository_owner }}
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          cd homelab-apps
-          IMAGE_TAG="${{ needs.build.outputs.tag }}"
-          yq e '.config["code:routerImage"] = "${{ env.IMAGE_NAME }}:'"${IMAGE_TAG}"'"' \
-            -i apps/opencode-router/Pulumi.dev.yaml
-          git add apps/opencode-router/Pulumi.dev.yaml
-          git diff --cached --quiet && exit 0
-          git commit -m "chore(deploy): update opencode-router image to ${IMAGE_TAG}"
-          git push
+          if [ -z "${GH_TOKEN}" ]; then
+            echo "HOMELAB_APPS_PAT secret not configured — skipping auto-deploy."
+            echo "To deploy manually: gh workflow run deploy-opencode-router.yml --repo ${OWNER}/homelab-apps --field routerImage=${IMAGE}"
+            exit 0
+          fi
+          gh workflow run deploy-opencode-router.yml \
+            --repo "${OWNER}/homelab-apps" \
+            --field "routerImage=${IMAGE}"
+          echo "Triggered deploy-opencode-router.yml in ${OWNER}/homelab-apps with image: ${IMAGE}"

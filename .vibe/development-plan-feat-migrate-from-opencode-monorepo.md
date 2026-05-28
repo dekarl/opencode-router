@@ -69,10 +69,13 @@ The current Dockerfile references the full opencode monorepo workspace structure
 
 ### CI: Build and publish image
 
-A GitHub Actions workflow must be created to build and push the Docker image to GHCR on every push to `main`. The existing workflow in the opencode monorepo (`build-opencode-router.yml`) is the reference:
+A GitHub Actions workflow builds and pushes the Docker image to GHCR on every push to `main`:
 - Triggers on push to `main` (paths: `packages/**`, `Dockerfile`, `.github/workflows/build-image.yml`)
 - Tags image as `ghcr.io/<owner>/opencode-router:<version>-main.<sha7>` and `:latest`
-- After building, automatically updates `Pulumi.dev.yaml` in `homelab-apps/apps/opencode-router/` with the new image tag (via a commit back to the repo — or via a cross-repo dispatch to homelab-apps)
+- After building, the `trigger-deploy` job dispatches `deploy-opencode-router.yml` in `homelab-apps` via `gh workflow run --field routerImage=<image>` using a `HOMELAB_APPS_PAT` secret
+- **CRITICAL: Cross-repo git push cannot work** — `GITHUB_TOKEN` is scoped to the current repo only. Cross-repo writes require either: (a) a fine-grained PAT with "Actions: write" on the target repo, or (b) manual deploy. The old approach (`actions/checkout` + `git push` to homelab-apps) would silently fail.
+- **Chosen pattern**: `gh workflow run` dispatch (Option A) or manual `gh workflow run` (Option B) or Renovate PR (Option C). The dispatch requires `HOMELAB_APPS_PAT` secret; if absent, the step prints a manual instruction and exits 0.
+- The homelab-apps `deploy-opencode-router.yml` workflow accepts a `routerImage` input, runs `pulumi config set code:routerImage <image>`, then calls the reusable `deploy-to-cluster.yml` workflow.
 - **Deployment order**: image must be published first; only then can the homelab Pulumi stack be deployed with a pinned SHA tag
 
 ### Renovate
@@ -155,20 +158,50 @@ scripts/
 ## Explore
 <!-- beads-phase-id: opencode-router-1.1 -->
 ### Tasks
+<!-- beads-synced: 2026-05-28 -->
+*Auto-synced — do not edit here, use `bd` CLI instead.*
 
-*Tasks managed via `bd` CLI*
 
 ## Plan
 <!-- beads-phase-id: opencode-router-1.2 -->
 ### Tasks
+<!-- beads-synced: 2026-05-28 -->
+*Auto-synced — do not edit here, use `bd` CLI instead.*
 
-*Tasks managed via `bd` CLI*
 
 ## Code
 <!-- beads-phase-id: opencode-router-1.3 -->
 ### Tasks
+<!-- beads-synced: 2026-05-28 -->
+*Auto-synced — do not edit here, use `bd` CLI instead.*
 
-*Tasks managed via `bd` CLI*
+- [x] `opencode-router-1.3.1` Set up bun workspace root (package.json with workspaces: packages/*)
+- [x] `opencode-router-1.3.10` Verify: bun run build in packages/app produces dist/ (SPA)
+- [x] `opencode-router-1.3.11` Verify: docker build . succeeds and produces a runnable image
+- [x] `opencode-router-1.3.12` Add RBAC resources to Pulumi stack (ServiceAccount + Role + RoleBinding for pod management)
+- [x] `opencode-router-1.3.13` Add renovate.json to repo root (common config: config:recommended, automerge minor/patch, Friday schedule)
+- [x] `opencode-router-1.3.14` Create .github/workflows/build-image.yml — build + push to GHCR on main, auto-update homelab-apps Pulumi.dev.yaml with pinned SHA
+- [x] `opencode-router-1.3.15` Review findings: document all issues found during code review
+- [x] `opencode-router-1.3.16` Fix: Bun.file() in port-watcher.ts still uses Bun API instead of Node.js fs
+- [x] `opencode-router-1.3.17` Fix: plugin/tsconfig.json still references bun-types (breaks DTS build)
+- [x] `opencode-router-1.3.18` Fix: Icon component missing style prop in custom UI package
+- [x] `opencode-router-1.3.19` Fix: app/bunfig.toml leftover from bun era (unused, misleading)
+- [x] `opencode-router-1.3.2` Copy packages/opencode-router → packages/router (update package.json name/deps)
+- [x] `opencode-router-1.3.20` Fix: router/Dockerfile is a bun monorepo leftover (old, should be deleted)
+- [x] `opencode-router-1.3.21` Fix: comment in pod-manager.ts still mentions bun
+- [x] `opencode-router-1.3.22` Fix: mock-k8s.ts activity fetch returns wrong JSON shape (object vs array)
+- [x] `opencode-router-1.3.23` Add: dev:mock script to root package.json for zero-config local UI dev
+- [x] `opencode-router-1.3.24` Fix: .env.local comment still mentions Bun TLS stack
+- [x] `opencode-router-1.3.25` Fix: pod-manager.ts and api.ts load kubeconfig at module init, crashing in MOCK_K8S mode
+- [x] `opencode-router-1.3.26` Fix UI theme: replace generic CSS vars with real opencode OC-2 design tokens (colors.css + theme.css)
+- [x] `opencode-router-1.3.27` Fix CI: remove broken cross-repo update-homelab job from build-image.yml
+- [x] `opencode-router-1.3.3` Copy packages/opencode-router-app → packages/app (update package.json workspace refs)
+- [x] `opencode-router-1.3.4` Copy packages/opencode-router-plugin → packages/plugin (use npm @opencode-ai/plugin)
+- [x] `opencode-router-1.3.5` Create packages/ui — custom opencode-style UI components (Button, Dialog, TextField, Spinner, Icon, context providers, theme, styles)
+- [x] `opencode-router-1.3.6` Rewrite Dockerfile for standalone repo layout (no monorepo workspace COPY)
+- [x] `opencode-router-1.3.7` Write scripts/build-image.sh (updated paths, standalone context)
+- [x] `opencode-router-1.3.8` Create homelab-apps Pulumi stack at apps/opencode-router/ following aftertouch pattern
+- [x] `opencode-router-1.3.9` Verify: bun install at repo root succeeds (all workspace deps resolved)
 
 ### Review Findings & Fixes (2026-05-27)
 
@@ -216,6 +249,34 @@ A thorough review of the migration was performed. Overall the migration is solid
 
 18. **`styles/base.css` replaced with full opencode version** — Our original stub had only box-model reset + body rule. Replaced with the full opencode `base.css` which includes the complete Tailwind-style reset (iOS zoom prevention, form element normalization, etc.).
 
+**End-to-end test with real k8s cluster (2026-05-28):**
+
+All flows tested manually with the real homelab k3s cluster (`flinker` node):
+
+19. **Session list loads from k8s** — Router starts, restores pod secrets for running pods, correctly reads PVC annotations to reconstruct session metadata (repoUrl, branch, email, createdAt, description, attachUrl).
+
+20. **Session proxy works** — Subdomain proxy `<hash>.localhost:3002` correctly proxies to the pod's port 4096 via `kubectl port-forward` (dev mode). HTTP 200 returned from pod, full opencode HTML served.
+
+21. **Session detail view** — Clicking a session navigates to `/session/<hash>`, which shows the full conversation thread (messages, shell commands, file diffs) from the running pod via the progress stream API.
+
+22. **Session details dropdown** — "…" button opens/closes inline action panel with "Attach ⌘" (copies `opencode attach` CLI command) and "Beenden" (terminate) buttons.
+
+23. **New session creation** — Filling repo URL + source branch + description and pressing Enter: (a) `POST /api/sessions` creates PVC + pod in k8s, (b) router navigates to `/session/<hash>` showing startup progress steps (Initialisierung, Umgebung konfigurieren, etc.), (c) once pod is ready shows iframe loading `<hash>.localhost:3002/…/session/<sessionId>`.
+
+24. **Idle timeout cleanup** — Router correctly detected the browsed session as idle (last activity > 15min) and deleted its pod with log line `Deleting idle pod opencode-session-02242f165e60 (last activity: ...)`.
+
+25. **Session delete** — `DELETE /api/sessions/<hash>` returns 204, pod enters Terminating state immediately in k8s.
+
+26. **`DEV_VITE_URL`** — Note: when other Vite dev servers are running on ports 5173/5174, the new app dev server allocates 5175+. Update `.env.local` `DEV_VITE_URL` to match if restarting. The value `http://localhost:5173` is the default for a clean environment.
+
+27. **`util._extend` deprecation warning** — Emitted at startup by a third-party dependency (not our code, likely `http-proxy`). Pre-existing, not actionable.
+
+**Known issues (not blocking):**
+
+- `GET /api/user/repos` always returns 401 in local dev — expected, GitHub token not configured in `.env.local` by default.
+- `favicon.ico` 404 — router doesn't serve a favicon for the setup UI.
+- CSP violation in iframe — the opencode pod sends a strict `Content-Security-Policy` header that blocks some inline scripts. This is a pod-side policy, not a router issue.
+
 **Confirmed clean (no changes needed):**
 - All `bun:test` → `vitest`, `mock()` → `vi.fn()`, `mock.module()` → `vi.doMock()` conversions: ✅ correct
 - `import.meta.dir` → `import.meta.dirname` in config.test.ts: ✅ correct  
@@ -224,14 +285,32 @@ A thorough review of the migration was performed. Overall the migration is solid
 - Router dev: `bun --watch` → `tsx --watch` is equivalent ✅
 - All 270 tests pass after fixes ✅
 - All typechecks pass after fixes ✅
+- CI workflow (`.github/workflows/build-image.yml`): builds + pushes to GHCR, then dispatches `deploy-opencode-router.yml` in homelab-apps via `gh workflow run` (requires `HOMELAB_APPS_PAT` secret; gracefully skips if absent) ✅
+- Renovate (`renovate.json`): automerge minor/patch, Friday schedule, `rangeStrategy: "pin"` ✅
+- homelab-apps Pulumi stack (`homelab-apps/apps/opencode-router/`): 18 tests pass, typechecks clean ✅
+- `.gitignore` updated to exclude `.playwright-cli/` ✅
+
+### README
+
+`README.md` added at repo root. Focused on:
+- **Intent**: what the router enables (disposable sessions, isolation, pre-configured environments, subdomain routing)
+- **Architecture**: browser → router → pods diagram; package breakdown
+- **Getting started**: prerequisites table (k8s, storage, wildcard DNS/TLS, opencode image, auth proxy), full env var reference, local dev (mock + real cluster), production deployment
+- **CI/CD**: what the `build-image.yml` workflow does and how auto-deploy works
+- **Reference to homelab-apps**: links to `homelab-apps/apps/opencode-router` as the canonical production Pulumi stack
 
 ## Commit
 <!-- beads-phase-id: opencode-router-1.4 -->
 ### Tasks
+<!-- beads-synced: 2026-05-28 -->
+*Auto-synced — do not edit here, use `bd` CLI instead.*
 
-*Tasks managed via `bd` CLI*
-
-
-
----
-*This plan is maintained by the LLM and uses beads CLI for task management. Tool responses provide guidance on which bd commands to use for task management.*
+- [ ] `opencode-router-1.4.1` Code cleanup: remove debug output, TODOs, commented code
+- [ ] `opencode-router-1.4.2` Write README.md focused on intent and k8s getting started
+- [ ] `opencode-router-1.4.3` Final validation: run tests and typecheck
+- [ ] `opencode-router-1.4.4` Commit all changes in opencode-router and homelab-apps
+- [x] `opencode-router-1.4.5` Code cleanup: scan for debug output, TODOs, commented-out code
+- [x] `opencode-router-1.4.6` Write README.md focused on intent, getting started, k8s requirements, homelab-apps reference
+- [x] `opencode-router-1.4.7` Final validation: run tests and typecheck
+- [ ] `opencode-router-1.4.8` Commit all changes in opencode-router
+- [ ] `opencode-router-1.4.9` Commit all changes in homelab-apps
