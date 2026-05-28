@@ -13,7 +13,7 @@
 import crypto from "node:crypto"
 
 // Set required env vars before config.ts is evaluated (uses required() which throws if absent)
-process.env.OPENCODE_IMAGE ??= "ghcr.io/sst/opencode:latest"
+process.env.OPENCODE_IMAGE ??= "ghcr.io/mrsimpson/opencode:latest"
 process.env.ROUTER_DOMAIN ??= "localhost:3002"
 process.env.ROUTER_PROTO ??= "http"
 process.env.OPENCODE_PORT ??= "4096"
