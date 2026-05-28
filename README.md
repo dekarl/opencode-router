@@ -48,14 +48,14 @@ Kubernetes (namespace: code)
 | Kubernetes cluster | k3s, k8s, GKE, EKS — any distribution works |
 | Persistent storage | A `StorageClass` that supports `ReadWriteOnce` (e.g. `longhorn`, `local-path`) |
 | Wildcard DNS + TLS | Sessions live at `*.<domain>` — you need a wildcard DNS record and a wildcard TLS certificate covering that subdomain |
-| opencode image | A container image with `opencode serve` as the entrypoint (see `OPENCODE_IMAGE` below) |
+| opencode image | A container image with `opencode serve` as the entrypoint — see [Choosing an opencode image](#choosing-an-opencode-image) below |
 | Auth proxy | The router trusts the `X-Auth-Request-Email` header from an upstream auth proxy (e.g. oauth2-proxy). Without it, set `DEV_EMAIL` for local dev only. |
 
 ### Environment variables
 
 | Variable | Required | Default | Description |
 |---|---|---|---|
-| `OPENCODE_IMAGE` | ✅ | — | OCI image used for session pods (`opencode serve`) |
+| `OPENCODE_IMAGE` | ✅ | — | OCI image used for session pods — must run `opencode serve` as its entrypoint and run as a non-root user (UID 1000). See [Choosing an opencode image](#choosing-an-opencode-image). |
 | `ROUTER_DOMAIN` | ✅ | — | Base domain for the router and sessions (e.g. `code.example.com`) |
 | `OPENCODE_NAMESPACE` | | `opencode` | Kubernetes namespace where pods and PVCs are created |
 | `PORT` | | `3000` | HTTP port the router listens on |
@@ -72,6 +72,38 @@ Kubernetes (namespace: code)
 | `ATTACH_PORT` | | `4096` | Port for the `opencode attach` endpoint (separate from the main HTTP server) |
 | `ADMIN_SECRET` | | — | Secret for admin endpoints (e.g. image pre-pull). Optional. |
 | `DEBUG_HEADERS` | | `false` | Log all incoming request headers (useful for diagnosing missing auth headers) |
+
+### Choosing an opencode image
+
+The router requires an OCI image that:
+1. Runs `opencode serve` as its entrypoint
+2. Runs as a **non-root user** (the homelab k8s namespace enforces `restricted` Pod Security Standards which reject UID 0 containers)
+3. Has `HOME=/home/<user>` set — the router's init container seeds config and clones repos into that home directory
+
+#### Why not the upstream `ghcr.io/anomalyco/opencode` image?
+
+The upstream image (Alpine-based, minimal) **runs as root** — there is no `USER` directive in its Dockerfile. It also has no `git`, `node`, `python`, `gh`, `ripgrep`, or other dev tools, and no baked-in config defaults or the router plugin. It cannot be used directly.
+
+#### Why not the Docker sandbox template (`docker/sandbox-templates:opencode`)?
+
+Docker's official sandbox template is built for the `sbx` CLI runtime, not Kubernetes: it's 700MB, uses a different home directory (`/home/agent`), and is designed for TUI mode only. It also has no router plugin or custom skills.
+
+#### Recommended: a layered fork image
+
+The [mrsimpson/opencode](https://github.com/mrsimpson/opencode) fork maintains a custom image (`ghcr.io/mrsimpson/opencode`) built on top of the upstream Alpine binary. It adds:
+
+- **Non-root user** `opencode` (UID 1000) — required for k8s `restricted` PSS ✅
+- **Dev tools**: `git`, `bash`, `nodejs`, `npm`, `pnpm`, `python3`, `jq`, `ripgrep`, `gh`, `bun`
+- **`bd` (beads)** task management CLI — used by opencode agents for structured work tracking
+- **Router plugin** baked at `/etc/opencode-plugin/` — pushed progress events without any `npm install` in the pod
+- **Default config** baked at `/etc/opencode-defaults/` — skills, agents, opencode.json, init-scripts
+- **MCP servers** pre-installed: `@codemcp/knowledge-server`, `@codemcp/skills-server`, `@playwright/cli`
+- **`bind-all-interfaces` Node.js patch** — dev servers bind `0.0.0.0` not `localhost`, so they're reachable across pods
+- **musl PTY library** — enables bun's terminal emulation on Alpine
+
+The image is tagged `ghcr.io/mrsimpson/opencode:<version>-main.<sha7>` and rebuilt whenever upstream opencode releases a new version (via a manual `upstream-merge` workflow that opens a PR, then CI rebuilds on merge). `:latest` always points to the most recent build.
+
+**Upgrade strategy**: use Renovate (or the homelab-apps `deploy-opencode-router.yml` workflow dispatch) to update `code:opencodeImage` in `Pulumi.dev.yaml` when a new image is published. The `build-opencode-image.yml` workflow in the fork can also pre-pull the new image on the running router via the `/api/admin/pull-image` endpoint to warm the node cache before deploying.
 
 ### Local development (no cluster)
 

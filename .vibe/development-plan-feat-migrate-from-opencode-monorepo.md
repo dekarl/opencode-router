@@ -78,6 +78,22 @@ A GitHub Actions workflow builds and pushes the Docker image to GHCR on every pu
 - The homelab-apps `deploy-opencode-router.yml` workflow accepts a `routerImage` input, runs `pulumi config set code:routerImage <image>`, then calls the reusable `deploy-to-cluster.yml` workflow.
 - **Deployment order**: image must be published first; only then can the homelab Pulumi stack be deployed with a pinned SHA tag
 
+### opencode image: fork required, upstream not usable directly
+
+The router requires a **non-root opencode image** with dev tools and the router plugin baked in. Three options were evaluated:
+
+| Option | User | Size | Usable? |
+|---|---|---|---|
+| `ghcr.io/anomalyco/opencode:latest` | `root` (UID 0) | ~90MB | ❌ k8s `restricted` PSS rejects root |
+| `docker/sandbox-templates:opencode` | `agent` (UID 1000) | ~700MB | ❌ wrong HOME (`/home/agent`), sandbox-only runtime, no plugin |
+| `ghcr.io/mrsimpson/opencode` (fork) | `opencode` (UID 1000) | ~232MB | ✅ recommended |
+
+The `mrsimpson/opencode` fork image adds on top of upstream Alpine binary: non-root user, `git bash nodejs npm pnpm python3 jq ripgrep gh bun bd`, router plugin at `/etc/opencode-plugin/`, default config at `/etc/opencode-defaults/`, MCP servers (`@codemcp/knowledge-server`, `@codemcp/skills-server`, `@playwright/cli`), `bind-all-interfaces.cjs` Node.js patch (dev servers bind `0.0.0.0` not `localhost` in k8s), and musl-compiled `librust_pty.so` for bun PTY on Alpine.
+
+**Upgrade strategy**: `upstream-merge.yml` (manual trigger) merges upstream opencode commits, auto-updates `.base-version`, and opens a PR. On merge, `build-opencode-image.yml` rebuilds the fork image, pushes to GHCR, and calls `/api/admin/pull-image` to pre-warm the node cache. `Pulumi.dev.yaml`'s `code:opencodeImage` is updated either via the admin endpoint (`updateConfig: true`) or manually via `gh workflow run deploy-opencode-router.yml --field routerImage=...`.
+
+**`:latest` is intentional**: production uses pinned SHA tags (`1.14.20-main.1d9cc13`) for reproducibility; local dev uses `:latest` for convenience. Both are valid — the image is the fork's own, not a third-party floating tag.
+
 ### Renovate
 
 Add `renovate.json` to the repo root using the **common config** pattern from other personal repos:
@@ -298,6 +314,7 @@ All flows tested manually with the real homelab k3s cluster (`flinker` node):
 - **Getting started**: prerequisites table (k8s, storage, wildcard DNS/TLS, opencode image, auth proxy), full env var reference, local dev (mock + real cluster), production deployment
 - **CI/CD**: what the `build-image.yml` workflow does and how auto-deploy works
 - **Reference to homelab-apps**: links to `homelab-apps/apps/opencode-router` as the canonical production Pulumi stack
+- **Choosing an opencode image** section: explains why upstream `anomalyco/opencode` (runs as root, no tools) and Docker sandbox template (`/home/agent` layout, 700MB, sandbox-only) are not suitable; documents the `mrsimpson/opencode` fork image as the recommended choice with its exact value-adds (non-root UID 1000, dev tools, router plugin, MCP servers, bind-all-interfaces patch, musl PTY lib, baked config); documents the upgrade strategy (upstream-merge workflow → PR → CI rebuild → Renovate or workflow dispatch to update Pulumi stack config).
 
 ## Commit
 <!-- beads-phase-id: opencode-router-1.4 -->
@@ -305,12 +322,12 @@ All flows tested manually with the real homelab k3s cluster (`flinker` node):
 <!-- beads-synced: 2026-05-28 -->
 *Auto-synced — do not edit here, use `bd` CLI instead.*
 
-- [ ] `opencode-router-1.4.1` Code cleanup: remove debug output, TODOs, commented code
-- [ ] `opencode-router-1.4.2` Write README.md focused on intent and k8s getting started
-- [ ] `opencode-router-1.4.3` Final validation: run tests and typecheck
-- [ ] `opencode-router-1.4.4` Commit all changes in opencode-router and homelab-apps
+- [x] `opencode-router-1.4.1` Code cleanup: remove debug output, TODOs, commented code
+- [x] `opencode-router-1.4.2` Write README.md focused on intent and k8s getting started
+- [x] `opencode-router-1.4.3` Final validation: run tests and typecheck
+- [x] `opencode-router-1.4.4` Commit all changes in opencode-router and homelab-apps
 - [x] `opencode-router-1.4.5` Code cleanup: scan for debug output, TODOs, commented-out code
 - [x] `opencode-router-1.4.6` Write README.md focused on intent, getting started, k8s requirements, homelab-apps reference
 - [x] `opencode-router-1.4.7` Final validation: run tests and typecheck
-- [ ] `opencode-router-1.4.8` Commit all changes in opencode-router
-- [ ] `opencode-router-1.4.9` Commit all changes in homelab-apps
+- [x] `opencode-router-1.4.8` Commit all changes in opencode-router
+- [x] `opencode-router-1.4.9` Commit all changes in homelab-apps
