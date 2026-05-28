@@ -32,8 +32,6 @@ async function fillNewSessionForm(page: Page) {
   await page.getByPlaceholder("https://github.com/org/repo.git").fill(REPO_URL)
   // Fill source branch
   await page.getByPlaceholder("main").fill(SOURCE_BRANCH)
-  // Wait for session branch to be suggested (non-empty)
-  await expect(page.getByTestId("session-branch-display")).not.toBeEmpty()
   // Fill prompt
   await page.getByRole("textbox", { name: /prompt|task|question/i }).fill(PROMPT_TEXT)
 }
@@ -71,8 +69,8 @@ test.describe("new session form", () => {
     await page.getByPlaceholder("https://github.com/org/repo.git").fill(REPO_URL)
     await page.keyboard.press("Tab") // trigger blur → suggestBranch call
 
-    // Wait for the suggested session branch to appear in the display element
-    await expect(page.getByTestId("session-branch-display")).not.toBeEmpty()
+    // Session branch is auto-generated but no longer displayed in UI
+    // (it is still sent to the API and shown in the session list)
   })
 
   test("source-branch and repo-url inputs disable mobile auto-capitalization", async ({ page }) => {

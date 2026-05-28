@@ -189,17 +189,8 @@ export function SessionInputBar(props: Props) {
               items={branchItems()}
             />
           </div>
-          <Show when={props.sessionBranch}>
-            <p
-              data-testid="session-branch-display"
-              style={{
-                color: "var(--text-dimmed-base)",
-                "font-size": "11px",
-              }}
-            >
-              Session branch: {props.sessionBranch}
-            </p>
-          </Show>
+          {/* Auto-created branch name intentionally hidden */}
+          {/* <Show when={props.sessionBranch}>...</Show> */}
         </Show>
 
         <textarea
