@@ -63,6 +63,7 @@ jobs:
       - name: Build
         run: |
           docker build \
+            --build-arg APP_VERSION="${{ steps.version.outputs.tag }}" \
             -t ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.tag }} \
             -t ${{ env.IMAGE_NAME }}:latest \
             .

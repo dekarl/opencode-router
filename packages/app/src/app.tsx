@@ -546,6 +546,11 @@ export function App() {
                   onResumeSession={handleResumeSession}
                   onTerminateSession={handleTerminateSession}
                 />
+
+                {/* Build version */}
+                <p class="text-center" style={{ color: "var(--text-dimmed-base)", "font-size": "11px" }}>
+                  {import.meta.env.VITE_APP_VERSION || "dev"}
+                </p>
               </div>
             </div>
           </Match>

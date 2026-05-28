@@ -1,5 +1,6 @@
 # Stage 1: Build the management UI SPA
 FROM node:22-slim AS spa-build
+ARG APP_VERSION=dev
 WORKDIR /repo
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* ./
 COPY packages/ui/package.json packages/ui/
@@ -7,7 +8,7 @@ COPY packages/app/package.json packages/app/
 RUN npm install -g pnpm@10.0.0 && pnpm install --frozen-lockfile
 COPY packages/ui/ packages/ui/
 COPY packages/app/ packages/app/
-RUN pnpm --filter @opencode-ai/router-app build
+RUN VITE_APP_VERSION="${APP_VERSION}" pnpm --filter @opencode-ai/router-app build
 
 # Stage 2: Build the router
 FROM node:22-slim AS router-build
