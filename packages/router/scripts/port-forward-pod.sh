@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-NAMESPACE="${OPENCODE_NAMESPACE:-opencode-router}"
+NAMESPACE="${OPENCODE_NAMESPACE:-code}"
 LOCAL_PORT="${LOCAL_PORT:-4096}"
 POD_PORT="${POD_PORT:-4096}"
 LABEL_SELECTOR="app.kubernetes.io/managed-by=opencode-router"
