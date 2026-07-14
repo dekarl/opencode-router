@@ -7,7 +7,7 @@ import { config } from "./config.js"
 import * as devProxy from "./dev-proxy.js"
 import {
   deleteIdlePods,
-  getPodIP,
+  getPodName,
   updateLastActivity,
   restorePodSecrets,
   getOrCreateAttachPassword,
@@ -158,8 +158,8 @@ async function proxyToPod(
   if (devProxy.enabled) {
     target = await devProxy.target(hash, targetPort)
   } else {
-    const ip = await getPodIP(hash)
-    if (ip) target = `http://${ip}:${targetPort}`
+    const name = await getPodName(hash)
+    if (name) target = `http://${name}:${targetPort}`
   }
   if (!target) return false
 

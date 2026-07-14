@@ -1301,6 +1301,22 @@ export async function getPodIP(hash: string): Promise<string | null> {
 }
 
 /**
+ * Return the pod's name if it is Running, or null otherwise. Looks up by session hash.
+ */
+export async function getPodName(hash: string): Promise<string | null> {
+  const name = podName(hash)
+  try {
+    const pod = await k8sApi.readNamespacedPod({ name, namespace: config.namespace })
+    if (pod.status?.conditions?.find((c) => c.type === "Ready" && c.status === "True") && pod.status?.podIP)
+      return name
+    return null
+  } catch (err) {
+    if (isNotFound(err)) return null
+    throw err
+  }
+}
+
+/**
  * List all sessions belonging to a user (by email annotation).
  * Pass the incoming request so URLs can be built with the correct scheme.
  */
