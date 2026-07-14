@@ -284,7 +284,7 @@ async function buildSessionInfo(
         // Fresh pod (no sessions yet) with an initialMessage — bootstrap a new session.
         // All concurrent callers await the same Promise — only one POST /session is ever sent.
         // Returns null while bootstrap is in-flight or if it has permanently failed.
-        let base = `http://[${pod.status.podIP}]:${config.opencodePort}`
+        let base = `http://${pod.metadata?.name}:${config.opencodePort}`
         if (devProxy.enabled) {
           const proxyTarget = await devProxy.target(hash)
           if (proxyTarget) base = proxyTarget
