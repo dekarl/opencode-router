@@ -619,7 +619,7 @@ function bootstrapPodSession(base: string, hash: string, initialMessage: string)
 
   const promise = (async () => {
     try {
-      const createRes = await bootstrapFetchImpl(`${base}/session`, {
+      const createRes = await bootstrapFetchImpl(`${base}/api/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
@@ -648,7 +648,7 @@ function bootstrapPodSession(base: string, hash: string, initialMessage: string)
       } catch (err) {
         console.warn(`[archive] Failed to patch PVC session-id annotation for ${hash}:`, err)
       }
-      const promptRes = await bootstrapFetchImpl(`${base}/session/${sessionId}/prompt_async`, {
+      const promptRes = await bootstrapFetchImpl(`${base}/api/session/${sessionId}/prompt_async`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ parts: [{ type: "text", text: initialMessage }] }),
@@ -1640,7 +1640,7 @@ async function podActivityMs(ip: string, hash: string): Promise<{ ms: number; se
       if (!proxyTarget) return null
       base = proxyTarget
     }
-    const res = await activityFetchImpl(`${base}/session?limit=1&roots=true`)
+    const res = await activityFetchImpl(`${base}/api/session?limit=1&roots=true`)
     if (!res.ok) return null
     const data = (await res.json()) as { id: string; time: { updated: number } }[]
     // Empty sessions = fresh pod that is reachable but has no sessions yet.
