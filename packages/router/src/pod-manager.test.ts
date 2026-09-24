@@ -493,16 +493,16 @@ describe("remoteBranchExists", () => {
 // generate no further HTTP traffic after the handshake, so the pod annotation
 // goes stale and the pod is killed — even while the user is actively working.
 //
-// The fix: poll GET /experimental/session?limit=1 on the pod's IP to get the
+// The fix: poll GET /api/session?limit=1 on the pod's IP to get the
 // real time.updated from the opencode instance, and use that as the authority
 // for both idle-pod deletion and the lastActivity returned to the UI.
 //
 // These tests assert the CORRECT desired behaviour — they currently FAIL.
 // ---------------------------------------------------------------------------
 
-/** Build a minimal /experimental/session response body. */
+/** Build a minimal /api/session response body. */
 function makeSessionResponse(timeUpdatedMs: number): string {
-  return JSON.stringify([{ time: { updated: timeUpdatedMs } }])
+  return JSON.stringify({data:[{ time: { updated: timeUpdatedMs } }]})
 }
 
 describe("deleteIdlePods — session activity from opencode instance resets idle timer", () => {

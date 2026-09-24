@@ -1642,11 +1642,31 @@ async function podActivityMs(ip: string, hash: string): Promise<{ ms: number; se
     }
     const res = await activityFetchImpl(`${base}/api/session?limit=1&roots=true`)
     if (!res.ok) return null
-    const data = (await res.json()) as { id: string; time: { updated: number } }[]
+    const body = (await res.json()) as {
+      data: Array<{
+        id: string
+        time: {
+          updated: number
+        }
+      }>
+      cursor?: {
+        previous?: string
+        next?: string
+      }
+    }
+
     // Empty sessions = fresh pod that is reachable but has no sessions yet.
-    // Return non-null so the caller can bootstrap a session via bootstrapPodSession.
-    if (!data[0]) return { ms: Date.now(), sessionId: undefined }
-    return { ms: data[0].time?.updated ?? Date.now(), sessionId: data[0].id }
+    // Return non-null so the caller can bootstrap a session.
+    const session = body.data?.[0]
+
+    if (!session) {
+      return { ms: Date.now() }
+    }
+
+    return {
+      ms: session.time.updated,
+      sessionId: session.id,
+    }
   } catch {
     return null
   }
