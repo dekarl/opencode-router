@@ -975,7 +975,7 @@ export async function ensurePod(
              "-c",
              [
                `git config --global --add safe.directory /home/opencode/repo`,
-               `exec opencode serve --hostname :: --port ${config.opencodePort}`,
+               `exec opencode serve --hostname :: --port ${config.opencodePort} --print-logs`,
              ].join("\n"),
            ],
           readinessProbe: {
